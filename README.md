@@ -3,5 +3,9 @@
 ## Visualization
 Short demo in GIF here
 ![GIF Demo](imgs/LRHPvideo_GIF.gif)
+
+Extensive demo here
+[![Watch the Demo Video](https://img.youtube.com/vi/rC6fUYXUcm8/maxresdefault.jpg)](https://www.youtube.com/watch?v=rC6fUYXUcm8)
+
 ## Code
 Codes will be released upon paper acceptance
