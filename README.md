@@ -3,7 +3,7 @@
 ## Visualization
 Short demo in GIF here
 
-![GIF Demo](imgs/LRHPvideo_GIF.gif)
+![GIF Demo](imgs/LRHPvideo_gif.gif)
 
 Extensive demo here
 [![Watch the Demo Video](imgs/demo_thumbnail.png)](https://www.youtube.com/watch?v=rC6fUYXUcm8)
