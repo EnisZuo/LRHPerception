@@ -1,0 +1,10 @@
+# ninja log v5
+0	4183	1683054131717607141	/home/azuo/SGNet/ops_dcnv3/build/temp.linux-x86_64-cpython-310/home/azuo/SGNet/ops_dcnv3/src/cpu/dcnv3_cpu.o	820f34e7c1991e8
+1	13659	1683054141189831430	/home/azuo/SGNet/ops_dcnv3/build/temp.linux-x86_64-cpython-310/home/azuo/SGNet/ops_dcnv3/src/vision.o	7808a0fcd93a9f04
+0	43471	1683054170998536865	/home/azuo/SGNet/ops_dcnv3/build/temp.linux-x86_64-cpython-310/home/azuo/SGNet/ops_dcnv3/src/cuda/dcnv3_cuda.o	31da47d233cbf38f
+0	4101	1684164043345446046	/home/azuo/Trajectory_Prediction/DSPNet/ops_dcnv3/build/temp.linux-x86_64-cpython-310/home/azuo/Trajectory_Prediction/DSPNet/ops_dcnv3/src/cpu/dcnv3_cpu.o	703e3b1032e39d46
+1	13582	1684164052833642136	/home/azuo/Trajectory_Prediction/DSPNet/ops_dcnv3/build/temp.linux-x86_64-cpython-310/home/azuo/Trajectory_Prediction/DSPNet/ops_dcnv3/src/vision.o	82afddb746f673b3
+1	44242	1684164083490276040	/home/azuo/Trajectory_Prediction/DSPNet/ops_dcnv3/build/temp.linux-x86_64-cpython-310/home/azuo/Trajectory_Prediction/DSPNet/ops_dcnv3/src/cuda/dcnv3_cuda.o	33c7efe803478419
+5	3652	1685828571202059150	/home/azuo/LRHPerception/packet/structure/ops_dcnv3/build/temp.linux-x86_64-cpython-310/home/azuo/LRHPerception/packet/structure/ops_dcnv3/src/cpu/dcnv3_cpu.o	1452d8e6175d24e2
+6	12166	1685828579714236972	/home/azuo/LRHPerception/packet/structure/ops_dcnv3/build/temp.linux-x86_64-cpython-310/home/azuo/LRHPerception/packet/structure/ops_dcnv3/src/vision.o	6c19f198d9b91e91
+5	39333	1685828606874804170	/home/azuo/LRHPerception/packet/structure/ops_dcnv3/build/temp.linux-x86_64-cpython-310/home/azuo/LRHPerception/packet/structure/ops_dcnv3/src/cuda/dcnv3_cuda.o	a2984f7a6618cc60
