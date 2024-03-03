@@ -53,7 +53,9 @@ Test Speed:
 `_C.TRAIN.TASK = 'pred'`
 
 Evaluate segmentation on city dataset: 
+
     `_C.EVAL.TASK = 'seg'`
+    
     `_C.EVAL.SEG_DATASET = 'city'`
 
 Evaluate depth:
