@@ -26,7 +26,7 @@ _C.PRINT_TIME = False
 _C.CKPT = CN()
 _C.CKPT.LOG_DIR = '/home/azuo/LRHPerception/outputs/logs'
 _C.CKPT.SWIN_CKPT = '/home/azuo/Downloads/swin_tiny_patch4_window7_224_22k.pth'
-_C.CKPT.ORI_CKPT = '/home/azuo/LRHPerception/checkpoints/ORI_distributed_step2199_loss6.289422113448381.pth'
+_C.CKPT.ORI_CKPT = '/home/azuo/LRHPerception/checkpoints/ORI_updated_seg.pth'
 # _C.CKPT.DEPTH_CKPT = '/home/azuo/LRHPerception/outputs/all/checkpoints/ORI_distributed_step2199_loss6.289422113448381.pth'
 # _C.CKPT.DETECT_CKPT = '/home/azuo/LRHPerception/packet/checkpoint/bytetrack_x_mot17.pth-'
 _C.CKPT.TRAJ_PRED_CKPT = '/home/azuo/LRHPerception/packet/checkpoint/PIE_Epoch_038.pth'
@@ -50,7 +50,7 @@ _C.DATASET.DEPTH.GT_PATH_EVAL = '/home/azuo/Trajectory_Prediction/Monocular-Dept
 
 _C.DATASET.DETECT = CN()
 _C.DATASET.DETECT.DET_ROOT = '/home/azuo/LRHPerception/datasets/kitti/detection_2d'
-_C.DATASET.DETECT.NAME = 'kitti'
+_C.DATASET.DETECT.NAME = 'city'
 
 _C.DATASET.KITTI_RAW = CN()
 _C.DATASET.KITTI_RAW.ROOT = '/home/azuo/Trajectory_Prediction/Monocular-Depth-Estimation-Toolbox/data/kitti'
@@ -126,7 +126,7 @@ _C.MODEL.GRU_CVAE.KL_MIN = 0.07
 # -------EVAL--------
 _C.EVAL = CN()
 _C.EVAL.BATCH_SIZE = 1
-_C.EVAL.TASK = 'det'
+_C.EVAL.TASK = 'depth'
 _C.EVAL.DATASET_NAME = 'kitti_raw'
 _C.EVAL.TRAIN_JASON = "train.json"
 _C.EVAL.VAL_JASON = "val_half.json"
@@ -139,7 +139,7 @@ _C.EVAL.OUTPUT_DIR = '/home/azuo/LRHPerception/outputs'
 
 # -------TRAIN-------
 _C.TRAIN = CN()
-_C. TRAIN.START_NEW = True
+_C. TRAIN.START_NEW = False
 _C.TRAIN.ALL_EPOCHS = 150
 _C.TRAIN.SEG_EPOCHS = 20
 _C.TRAIN.DET_SEG_EPOCHS = 120
@@ -149,6 +149,7 @@ _C.TRAIN.DEPTH_NUM_EPOCHS = 10
 _C.TRAIN.DATASET_NAME = 'kitti_raw'
 # _C.TRAIN.ALL = False
 _C.TRAIN.TASKS = 'depth' # depth:depth, det-seg:det-seg, pred:pred
+_C.TRAIN.SEG_DATASET_NAME = 'city'
 _C.TRAIN.DET_SET_LEARNING_RATE = 7e-6
 _C.TRAIN.DEPTH_LEARNING_RATE = 1e-4
 _C.TRAIN.BATCH_SIZE = 1

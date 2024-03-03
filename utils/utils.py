@@ -86,7 +86,6 @@ def online_eval(cfg, model, dataloader_eval, gpu, ngpus, post_process=False):
             print('{:7.4f}, '.format(eval_measures_cpu[i]), end='')
         print('{:7.4f}'.format(eval_measures_cpu[8]))
         return eval_measures_cpu
-
     return None
 
 def calculate_mIOU(segmentation, gt_masks):
@@ -124,13 +123,16 @@ def eval_seg(model, dataloader, cfgs):
             det_imgs, det_labels, seg_labels = data[0], data[1], data[2]
 
             det_imgs = det_imgs.cuda(cfgs.GPU)
-            det_labels = det_labels.cuda(cfgs.GPU)
+            # det_labels = det_labels.cuda(cfgs.GPU)
             seg_labels = seg_labels.cuda(cfgs.GPU)
-            _, seg_out = model(det_imgs, det_labels=det_labels)
+            seg_out = model(det_imgs, specific='seg')
+            # print(seg_out.shape)
+            # print(seg_labels.shape)
             mIOU_batch = calculate_mIOU(seg_out, seg_labels)
             total_mIOU += mIOU_batch
-            # print(mIOU_batch)
+            
         print('mIOU: {:.4f}'.format(total_mIOU / len(dataloader)))
+        return total_mIOU / len(dataloader)
     model.train()
 
 def compute_errors(gt, pred):
@@ -272,6 +274,14 @@ def init_seg_head_weights(model, cfgs):
     filtered_dict = {k: v for k, v in filtered_dict.items() if k.startswith('seg_head')}
     model.load_state_dict(filtered_dict, strict=False)
     print("==segmentation head Weights Loaded==")
+    
+def init_seg_weights(model, cfgs):
+    ori_dict = torch.load(cfgs.ORI_CKPT, map_location='cpu')
+    filtered_dict = {'.'.join(k.split('.')[1:]): v for k, v in ori_dict.items()}
+    filtered_dict = {k: v for k, v in filtered_dict.items() if k.startswith('neck.') or k.startswith('backbone.')}
+    model.load_state_dict(filtered_dict, strict=False)
+    print("== Loaded neck checkpoint '{}'".format(cfgs.ORI_CKPT))
+    
 def init_det_head_weights(model, cfgs):
     ori_dict = torch.load(cfgs.ORI_CKPT, map_location='cpu')
     filtered_dict = {'.'.join(k.split('.')[1:]): v for k, v in ori_dict.items()}
@@ -288,7 +298,7 @@ def init_backbone_weights(model, cfgs):
 def init_backbone_neck_weights(model, cfgs):
     ori_dict = torch.load(cfgs.ORI_CKPT, map_location='cpu')
     filtered_dict = {'.'.join(k.split('.')[1:]): v for k, v in ori_dict.items()}
-    filtered_dict = {k: v for k, v in filtered_dict.items() if k.startswith('backbone.') or k.startswith('neck.')}
+    filtered_dict = {k: v for k, v in filtered_dict.items() if k.startswith('neck.') or k.startswith('backbone.')}
     model.load_state_dict(filtered_dict, strict=False)
     print("==backbone and neck Weights Loaded==")
 

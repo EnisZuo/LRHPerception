@@ -20,71 +20,84 @@ from utils.utils import *
 from termcolor import cprint
 
 @logger.catch
-def eval(model, cfg):
+def eval(model, cfgs):
     print("== Model Initialized to eval mode ==")
-    init_weights(model, cfg.CKPT)
+    init_weights(model, cfgs.CKPT)
     # current_time = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     # initiate visualizer
-    if cfg.VISUALIZE:
-        save_frame_path = os.path.join(cfg.EVAL.OUTPUT_DIR, 'saved_frames')
+    if cfgs.VISUALIZE:
+        save_frame_path = os.path.join(cfgs.EVAL.OUTPUT_DIR, 'saved_frames')
         if not os.path.exists(save_frame_path):
             os.makedirs(save_frame_path)
-        viz = Visualizer(cfg, mode='image', save_frame_dir=save_frame_path)
+        viz = Visualizer(cfgs, mode='image', save_frame_dir=save_frame_path)
     
     logger = None
-    if cfg.USE_WANDB:
+    if cfgs.USE_WANDB:
         logger = Logger("MPED_RNN",
-                cfg,
-                project = cfg.PROJECT,
+                cfgs,
+                project = cfgs.PROJECT,
                 viz_backend="wandb"
                 )        
     # else:
     #     logger = logging.Logger("MPED_RNN")
     
-    if cfg.EVAL.TASK == 'det':
-        print("Evaluating detection on KITTI detection 2D dataset...")
-        det_dataloader = NewDataLoader(cfg, mode='train', dataset='kitti_det')
-        with torch.no_grad():
-            for i, det_data in enumerate(det_dataloader.data):
-                det_imgs, img_path, det_labels = det_data
-                det_imgs = det_imgs.cuda(cfg.GPU)
-                img_path = img_path[0]
-                print(det_imgs.shape)
-                det_labels = det_labels.cuda(cfg.GPU)
-                dets, seg, hist_traj, pred_goal, pred_traj, depth_out = model(det_imgs, img_path)
-                print(dets.shape)
-            
-            
-    elif cfg.EVAL.DATASET_NAME == 'mot':
-        is_distributed = cfg.NUM_GPUS > 1
-        eval_dataloader = MOT_Dataloaders(cfg).get_eval_loader(is_distributed=is_distributed)
+    # if cfg.EVAL.TASK == 'det':
+    #     print("Evaluating detection on KITTI detection 2D dataset...")
+    #     det_dataloader = NewDataLoader(cfg, mode='train', dataset='kitti_det')
+    #     with torch.no_grad():
+    #         for i, det_data in enumerate(det_dataloader.data):
+    #             det_imgs, img_path, det_labels = det_data
+    #             det_imgs = det_imgs.cuda(cfg.GPU)
+    #             img_path = img_path[0]
+    #             print(det_imgs.shape)
+    #             det_labels = det_labels.cuda(cfg.GPU)
+    #             dets, seg, hist_traj, pred_goal, pred_traj, depth_out = model(det_imgs, img_path)
+    #             print(dets.shape)
+    if cfgs.EVAL.TASK == 'seg':
+        transform = transforms.Compose([
+            transforms.Resize((512, 1024)),
+            transforms.ToTensor()
+        ])
+        print('==evaluating seg on city dataset==')
+        val_loader = get_dataloader(cfgs, '/home/azuo/DSPNet/data', split='val', batch_size = cfgs.TRAIN.BATCH_SIZE, shuffle= True, transform=transform)
+        eval_seg(model, val_loader, cfgs)
+        
+    elif cfgs.EVAL.TASK == 'depth':
+        print('Evaluating depth')
+        eval_loader = NewDataLoader(cfgs, mode='online_eval')
+        online_eval(cfgs, model, eval_loader, cfgs.GPU, 1)
+        
+        
+    elif cfgs.EVAL.DATASET_NAME == 'mot':
+        is_distributed = cfgs.NUM_GPUS > 1
+        eval_dataloader = MOT_Dataloaders(cfgs).get_eval_loader(is_distributed=is_distributed)
         with torch.no_grad():
             for iter, (imgs, target, info_imgs, img_id) in tqdm(enumerate(eval_dataloader), total=len(eval_dataloader), desc="Inference"):
-                imgs = imgs.to(cfg.DEVICE)
+                imgs = imgs.to(cfgs.DEVICE)
                 # print(info_imgs[-1][0].split('/')[0])
-                img_path = os.path.join(cfg.DATASET.ROOT, cfg.EVAL.DATASET_NAME, cfg.EVAL.DATASPLIT_NAME, info_imgs[-1][0])
+                img_path = os.path.join(cfgs.DATASET.ROOT, cfgs.EVAL.DATASET_NAME, cfgs.EVAL.DATASPLIT_NAME, info_imgs[-1][0])
                 dets, seg, hist_traj, pred_goal, pred_traj, depth_out = model(imgs, img_path)
-                if cfg.VISUALIZE and iter % max(int(len(eval_dataloader)/20), 1) == 0:
+                if cfgs.VISUALIZE and iter % max(int(len(eval_dataloader)/20), 1) == 0:
                     viz_results(viz, dets, seg, hist_traj, None, pred_goal, depth_out, img_path,
-                                bbox_type=cfg.DATASET.BBOX_TYPE, normalized=False, logger=logger, name='pred_test')
+                                bbox_type=cfgs.DATASET.BBOX_TYPE, normalized=False, logger=logger, name='pred_test')
                     
-    elif cfg.EVAL.DATASET_NAME == 'kitti_raw':
+    elif cfgs.EVAL.DATASET_NAME == 'kitti_raw':
         print('Evaluating on KITTI raw dataset...')
-        if cfg.EVAL.SPEED_TEST:
+        if cfgs.EVAL.SPEED_TEST:
             k = 0
             with torch.no_grad():
                 print("\033[31m " + "== Model Warming Up for Speed Test ==" + "\033[0m")
-                test_loader = get_kitti_raw_dataloader(cfg, split='test', batch_size=1)
+                test_loader = get_kitti_raw_dataloader(cfgs, split='test', batch_size=1)
                 image, path = None, None
                 for iter, data in tqdm(enumerate(test_loader), total=len(test_loader), desc="Inference Progress"):
-                    img = data['img'].to(cfg.DEVICE)
+                    img = data['img'].to(cfgs.DEVICE)
                     img_path = data['img_path'][0]
                     _ = model(img, img_path)
                     k+=1
                     if k == 150:
                         image, path = img, img_path
                         break
-                test_loader = get_kitti_raw_dataloader(cfg, split='test', batch_size=1)
+                test_loader = get_kitti_raw_dataloader(cfgs, split='test', batch_size=1)
                 print("\033[32m" + "== Speed Testing in Progress ==" + "\033[0m")
                 start = time.time()
                 for _ in range(300):
@@ -92,20 +105,20 @@ def eval(model, cfg):
                 end = time.time()
                 print("Speed for One Image:", (end-start)/300)
 
-        test_loader = get_kitti_raw_dataloader(cfg, split='test', batch_size=1)
+        test_loader = get_kitti_raw_dataloader(cfgs, split='test', batch_size=1)
         empty_list = []
         for i in range(14):
             empty_list.append(torch.zeros(0, 45, 4))
         with torch.no_grad():
             global_step = 0
             for iter, data in tqdm(enumerate(test_loader), total=len(test_loader), desc="Inference Progress"):
-                img = data['img'].to(cfg.DEVICE)
+                img = data['img'].to(cfgs.DEVICE)
                 img_path = data['img_path'][0]
                 dets, seg, hist_traj, pred_goal, pred_traj, depth_out = model(img, img_path)
                 empty_list.append(pred_traj)
-                if cfg.VISUALIZE:
+                if cfgs.VISUALIZE:
                     viz_results(viz, dets, seg, hist_traj, None, pred_traj, depth_out, img_path,
-                                bbox_type=cfg.DATASET.BBOX_TYPE, normalized=False, logger=logger, name='pred_test')
+                                bbox_type=cfgs.DATASET.BBOX_TYPE, normalized=False, logger=logger, name='pred_test')
 
                 global_step += 1
                 if global_step == 1200:
@@ -201,36 +214,92 @@ def train(cfgs, model, mode):
 
     # train seg
     elif mode == 'seg':
-        print('==training segmentation==')
-        train_loader = get_kitti_road_dataloader(cfgs, split='train', batch_size=cfgs.TRAIN.BATCH_SIZE, save_mask=False)
-        seg_loss = CustomSegmentationLoss()
-        seg_params_group = [{'params': model.backbone.parameters(), 'lr': cfgs.TRAIN.DET_SET_LEARNING_RATE},
-                    {'params': model.neck.parameters(), 'lr': cfgs.TRAIN.DET_SET_LEARNING_RATE},
-                    {'params': model.seg_head.parameters(), 'lr': cfgs.TRAIN.DET_SET_LEARNING_RATE}]
-        seg_optimier = torch.optim.Adam(seg_params_group)
-        for epoch in range(cfgs.TRAIN.SEG_EPOCHS):
-            for batch_idx, batched_data in enumerate(train_loader):
-                # for data in batched_data:
-                seg_optimier.zero_grad()
-                img = batched_data['img'].to(cfg.DEVICE)
-                gt_img = batched_data['gt_img']
-                gt_img = gt_img.float().to(cfg.DEVICE)
-                seg_out = model(img, specific='seg')
-                loss = seg_loss(seg_out, gt_img)
-                loss.backward()
-                seg_optimier.step()
-                
-                writer.add_scalar('loss/seg', loss.item(), epoch * len(train_loader) + batch_idx)
-                if batch_idx % 10 == 0:
-                    print(f'Epoch: {epoch} | Batch: {batch_idx} | Seg Loss: {loss.item()}')
-                    log_file.write(f'Epoch: {epoch} | Batch: {batch_idx} | Seg Loss: {loss.item()}\n')
+        if cfgs.TRAIN.SEG_DATASET_NAME == 'kitti':
+            print('==training segmentation on kitti dataset==')
+            train_loader = get_kitti_road_dataloader(cfgs, split='train', batch_size=cfgs.TRAIN.BATCH_SIZE, save_mask=False)
+            seg_loss = CustomSegmentationLoss()
+            seg_params_group = [{'params': model.backbone.parameters(), 'lr': cfgs.TRAIN.DET_SET_LEARNING_RATE},
+                        {'params': model.neck.parameters(), 'lr': cfgs.TRAIN.DET_SET_LEARNING_RATE},
+                        {'params': model.seg_head.parameters(), 'lr': cfgs.TRAIN.DET_SET_LEARNING_RATE}]
+            seg_optimier = torch.optim.Adam(seg_params_group)
+            for epoch in range(cfgs.TRAIN.SEG_EPOCHS):
+                for batch_idx, batched_data in enumerate(train_loader):
+                    # for data in batched_data:
+                    seg_optimier.zero_grad()
+                    img = batched_data['img'].to(cfg.DEVICE)
+                    gt_img = batched_data['gt_img']
+                    gt_img = gt_img.float().to(cfg.DEVICE)
+                    seg_out = model(img, specific='seg')
+                    loss = seg_loss(seg_out, gt_img)
+                    loss.backward()
+                    seg_optimier.step()
                     
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': seg_optimier.state_dict(),
-                'loss': loss.item()
-            }, ckpt_save_path + f'epoch_{epoch}.pth')
+                    writer.add_scalar('loss/seg', loss.item(), epoch * len(train_loader) + batch_idx)
+                    if batch_idx % 10 == 0:
+                        print(f'Epoch: {epoch} | Batch: {batch_idx} | Seg Loss: {loss.item()}')
+                        log_file.write(f'Epoch: {epoch} | Batch: {batch_idx} | Seg Loss: {loss.item()}\n')
+                        
+                torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': seg_optimier.state_dict(),
+                    'loss': loss.item()
+                }, os.path.join(ckpt_save_path, f'/seg_epoch_{epoch}.pth'))
+                print(f"checkpoints saved to {ckpt_save_path}")
+                
+        else:
+            model.train()
+            model.depth.eval()
+            seg_loss_func = CustomSegmentationLoss()
+            transform = transforms.Compose([
+                transforms.Resize((512, 1024)),
+                transforms.ToTensor()
+            ])
+            train_loader = get_dataloader(cfgs, '/home/azuo/DSPNet/data', split='train',
+                                        batch_size=cfgs.TRAIN.BATCH_SIZE, shuffle=True, transform=transform)
+            val_loader = get_dataloader(cfgs, '/home/azuo/DSPNet/data', split='val',
+                                        batch_size=cfgs.TRAIN.BATCH_SIZE, shuffle=True, transform=transform)
+            
+            print('==training segmentation on city dataset==')
+
+            optimizer = torch.optim.Adam(model.seg_head.parameters(), lr=cfgs.TRAIN.DET_SET_LEARNING_RATE)
+            lowest_loss = 10
+            highest_mIOU = 0.0
+            eval_seg(model, val_loader, cfgs)
+            for epoch in range(cfgs.TRAIN.SEG_EPOCHS):
+                print(f"epoch: {epoch}")
+                for batch_idx, data in enumerate(tqdm(train_loader)):
+                    optimizer.zero_grad()
+                    det_imgs, _, seg_labels = data[0], data[1], data[2]
+
+                    det_imgs = det_imgs.to(cfgs.DEVICE)
+                    seg_labels = seg_labels.cuda(cfgs.GPU)
+                    seg_out = model(det_imgs, specific='seg')
+                    seg_out = seg_out.squeeze(1)
+                    seg_loss = seg_loss_func(seg_out, seg_labels)
+                    seg_loss.backward()
+                    optimizer.step()
+                    
+                    if seg_loss < lowest_loss:
+                        print(f"new lowest loss found: {seg_loss}")
+                        if seg_loss < 0.38:
+                            mIOU = eval_seg(model, val_loader, cfgs)
+                            save_path = os.path.join(ckpt_save_path, f'seg_mIOU_{mIOU}_loss_{seg_loss}.pth')
+                            if mIOU > highest_mIOU:
+                                torch.save({
+                                    'epoch': epoch,
+                                    'model_state_dict': model.state_dict(),
+                                    'optimizer_state_dict': optimizer.state_dict(),
+                                    'loss': seg_loss.item()
+                                }, save_path)
+                                print(f"new highest mIOU found: {mIOU}")
+                                print(f"checkpoints saved to {save_path}")
+                                highest_mIOU = mIOU
+                        lowest_loss = seg_loss
+
+                    if batch_idx % 100 == 0:
+                        print(f'Epoch: {epoch} | Batch: {batch_idx} | Seg Loss: {seg_loss}')
+                eval_seg(model, val_loader, cfgs)
             
     elif mode == 'det':
         cudnn.benchmark = True
@@ -347,8 +416,9 @@ def train(cfgs, model, mode):
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                     'loss': combined_loss.item()
-                }, ckpt_save_path + f'epoch_{epoch}.pth')
+                }, os.path.join(ckpt_save_path, f'det_seg_epoch_{epoch}.pth'))
         else: #cityscapes
+            lowest_loss = 10
             model.train()
             model.module.depth.eval()
             seg_loss_func = CustomSegmentationLoss()
@@ -384,18 +454,20 @@ def train(cfgs, model, mode):
                     combined_loss = det_loss + seg_loss
                     combined_loss.backward()
                     optimizer.step()
+                
                     
                     if batch_idx % 10 == 0:
                         print(f'Epoch: {epoch} | Batch: {batch_idx} | Combined Loss: {combined_loss}')
                     # writer.add_scalar('combined_loss/seg-det', combined_loss.item(), epoch * len(det_dataloader) + batch_idx)
+                    
                     
                 torch.save({
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                     'loss': combined_loss.item()
-                }, ckpt_save_path + f'epoch_{epoch}.pth')
-                if epoch % 10 == 0:
+                }, os.path.join(ckpt_save_path, f'det_seg_epoch_{epoch}.pth'))
+                if epoch % 1 == 0:
                     eval_seg(model, val_loader, cfgs)
                 
     # train depth
@@ -428,14 +500,15 @@ def train(cfgs, model, mode):
                     if batch_idx % 100 == 0:
                         print(f'Epoch: {epoch} | Batch: {batch_idx} | Loss: {loss.item()}')
 
-                if epoch % 2 == 0:
-                    model.eval()
-                    online_eval(cfgs, model, eval_loader, 0, 1)
+                model.eval()
+                results = online_eval(cfgs, model, eval_loader, cfgs.GPU, 1)
+                rms = results[-6]
+                save_path = os.path.join(ckpt_save_path, f'depth_epoch_{epoch}_rms_{rms}.pth')
 
                 torch.save({
                     'epoch': epoch,
                     'model_depth_state_dict': model.depth.state_dict(),
-                    'optimizer_state_dict': depth_optimizer.state_dict()}, ckpt_save_path + f'epoch_{epoch}.pth')
+                    'optimizer_state_dict': depth_optimizer.state_dict()}, save_path)
         else:
             cudnn.benchmark = True
             global_step = 0
@@ -548,10 +621,14 @@ def run(gpu, ngpus_per_node, cfgs):
     model.train()
     mode = cfg.TRAIN.TASKS
     if not cfgs.TRAIN.START_NEW and mode == 'all':
+        print("== Initialized all the weights ==")
         init_weights(model, cfgs.CKPT)
     elif mode == 'depth' and not cfgs.TRAIN.START_NEW:
         print("== Init depth backbone weights for training heads ==")
         init_backbone_weights(model, cfgs.CKPT)
+    # elif mode == 'seg':
+    #     print("==Initialized backbone and neck weights for training segmentaion head ==")
+    #     init_seg_weights(model, cfgs.CKPT)
     elif (mode == 'seg' or mode == 'det') and not cfgs.TRAIN.START_NEW:
         init_backbone_neck_weights(model, cfgs.CKPT)
         if mode == 'det':
