@@ -49,6 +49,16 @@ Test Speed:
 
 ​	`_C.EVAL.SPEED_TEST = Tr`
 
+## Evaluation
+`_C.TRAIN.TASK = 'pred'`
+
+Evaluate segmentation on city dataset: 
+    `_C.EVAL.TASK = 'seg'`
+    `_C.EVAL.SEG_DATASET = 'city'`
+
+Evaluate depth:
+    `_C.EVAL.TASK = 'depth'`
+
 ## Training
 
 Checkpoints output directory:
