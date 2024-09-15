@@ -4,6 +4,7 @@
 <figcaption style="text-align: center;">
 The quartet of images depicts the output of LRHPerception, with past trajectories delineated in blue and future trajectory predictions in red. The upper pair of images exemplifies two Success Cases, while the lower duo present one Failure Case.
 </figcaption>
+
 ## Visualization
 Short demo in GIF here
 
@@ -13,6 +14,11 @@ Extensive demo here
 [![Watch the Demo Video](imgs/demo_thumbnail.png)](https://www.youtube.com/watch?v=rC6fUYXUcm8)
 
 # Architecture
+![Model_Flow_V_TB](imgs/Model_Flow_V_TB.png)
+
+<figcaption style="text-align: center;">
+Innovation and architecture blueprint: a) Paradigm of end-to-end solution b) Paradigm of camera-fusion for local map solution c) Paradigm of our LRHPerception package, extracts essences from monocular camera for cost-info trade-off.
+</figcaption>
 
 ## Code
 Codes will be released upon paper acceptance
